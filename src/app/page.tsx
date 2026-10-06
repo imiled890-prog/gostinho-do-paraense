@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { AlertTriangle, Megaphone, MapPin, Phone } from "lucide-react";
 import { getSiteData } from "./actions";
 import MenuSection from "@/components/MenuSection";
@@ -36,7 +35,7 @@ export default async function Home() {
           <div className="wood-bg">
             <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
               <a href="#" className="flex items-center gap-3 min-w-0">
-                <Image src="/logo-transparent.png" alt="Gostinho do Paraense" width={60} height={60} className="object-contain" priority />
+                <div className="w-12 h-12 rounded-2xl bg-yellow-500 text-red-900 grid place-items-center text-2xl shadow-lg">🌿</div>
                 <div className="hidden sm:block">
                   <p className="text-yellow-400 font-black text-xl leading-none">GOSTINHO DO PARAENSE</p>
                   <p className="text-yellow-100/70 text-[10px] font-bold uppercase tracking-[0.25em] mt-1">Comidas típicas do Pará</p>
@@ -80,7 +79,7 @@ export default async function Home() {
         <footer className="wood-bg text-yellow-100/80">
           <div className="max-w-6xl mx-auto px-4 py-12 grid md:grid-cols-3 gap-10">
             <div>
-              <div className="flex items-center gap-3"><Image src="/logo-transparent.png" alt="" width={70} height={70} /><strong className="text-yellow-400 text-2xl">GOSTINHO</strong></div>
+              <div className="flex items-center gap-3"><div className="w-14 h-14 rounded-2xl bg-yellow-500 text-red-900 grid place-items-center text-2xl">🌿</div><strong className="text-yellow-400 text-2xl">GOSTINHO</strong></div>
               <p className="mt-4 text-sm leading-relaxed">Comida paraense, tradição e sabor para matar a saudade do Pará.</p>
             </div>
             <div>
