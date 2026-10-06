@@ -6,7 +6,7 @@ import { Upload, Loader2, CheckCircle2, X } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { formatPriceBRL } from "@/lib/pricing";
 
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 900 * 1024;
 
 interface ProductFormProps {
   product?: (Product & { imageUrl?: string }) | null;
@@ -38,7 +38,7 @@ export default function ProductForm({ product, onSaved }: ProductFormProps) {
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      alert("A imagem deve ter no máximo 3 MB.");
+      alert("A imagem deve ter no máximo 900 KB.");
       return;
     }
     setImage(file);
@@ -111,7 +111,7 @@ export default function ProductForm({ product, onSaved }: ProductFormProps) {
           <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => handleImageChange(event.target.files?.[0])} />
         </label>
         <div className="text-xs text-gray-500">
-          <p>JPG, PNG ou WEBP. Máx. 3 MB.</p>
+          <p>JPG, PNG ou WEBP. Máx. 900 KB.</p>
           {product?.imagePath && <button type="button" onClick={() => { setRemoveImage(true); setImage(null); }} className="mt-2 text-red-600 font-black inline-flex items-center gap-1"><X size={14} /> Remover foto</button>}
         </div>
       </div>
