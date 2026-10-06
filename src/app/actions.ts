@@ -81,7 +81,6 @@ export async function saveProduct(formData: FormData) {
   const description = cleanText(formData.get("description"), 500);
   const priceText = cleanText(formData.get("price"), 30);
   const category = cleanText(formData.get("category"), 40) as ProductCategory;
-  const currentImagePath = cleanText(formData.get("currentImagePath"), 300) || undefined;
   const removeImage = String(formData.get("removeImage") ?? "false") === "true";
   const fileValue = formData.get("image");
 
@@ -93,7 +92,7 @@ export async function saveProduct(formData: FormData) {
   const content = ensureContentShape(await readSiteContent());
   const existing = content.products.find((item) => item.id === id);
 
-  let imagePath = currentImagePath || existing?.imagePath;
+  let imagePath = existing?.imagePath;
   if (removeImage && imagePath) {
     await deleteMedia(imagePath, `remove product image: ${name}`);
     imagePath = undefined;
