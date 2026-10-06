@@ -5,7 +5,7 @@ import { useCart } from "./CartContext";
 import { formatPriceBRL } from "@/lib/pricing";
 import { ShoppingCart, X, Plus, Minus, Trash2, Phone, ChevronUp } from "lucide-react";
 
-const WHATSAPP_NUMBER = "554198832374";
+const WHATSAPP_NUMBER = "5541998832374";
 
 export default function CartDrawer() {
   const [open, setOpen] = useState(false);
