@@ -8,7 +8,7 @@ import { deleteMedia, mediaUrl, readSiteContent, uploadMedia, writeSiteContent }
 import { parsePriceToCents } from "@/lib/pricing";
 import type { Product, ProductCategory, SiteContent } from "@/lib/types";
 
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 900 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const ALLOWED_CATEGORIES = new Set<ProductCategory>([
   "hamburguer",
@@ -103,7 +103,7 @@ export async function saveProduct(formData: FormData) {
       throw new Error("Use JPG, PNG ou WEBP.");
     }
     if (fileValue.size > MAX_IMAGE_BYTES) {
-      throw new Error("A imagem deve ter no máximo 3 MB.");
+      throw new Error("A imagem deve ter no máximo 900 KB.");
     }
 
     const extension = getFileExtension(fileValue);
