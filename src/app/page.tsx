@@ -8,7 +8,7 @@ import { isAdminSession } from "@/lib/auth";
 import { CATEGORIES } from "@/data/categories";
 import type { Product } from "@/lib/types";
 
-const WHATSAPP_NUMBER = "554198832374";
+const WHATSAPP_NUMBER = "5541998832374";
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Olá! Gostaria de fazer um pedido.")}`;
 
 export default async function Home() {
