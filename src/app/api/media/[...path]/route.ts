@@ -11,8 +11,8 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
-  const { path } = await params;
-  const filePath = path.join("/").replace(/^\/+/, "");
+  const { path: segments } = await params;
+  const filePath = segments.join("/").replace(/^\/+/, "");
   const buffer = await readMedia(filePath);
 
   if (!buffer) return new Response("Imagem não encontrada", { status: 404 });
@@ -21,6 +21,7 @@ export async function GET(
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": contentTypes[extension] || "application/octet-stream",
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
