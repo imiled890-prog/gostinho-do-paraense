@@ -1,59 +1,45 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { UserError } from "@/lib/errors";
+import { createSessionToken, passwordMatches, SESSION_MAX_AGE_SECONDS, verifySessionToken } from "@/lib/session";
 
 const COOKIE_NAME = "gostinho_admin";
-const SESSION_DAYS = 7;
+const FAILED_LOGIN_DELAY_MS = 1000;
 
-function getAdminPassword() {
+function adminPassword() {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) throw new Error("ADMIN_PASSWORD não configurada.");
   return password;
 }
 
-function sign(payload: string) {
-  return createHmac("sha256", getAdminPassword()).update(payload).digest("base64url");
-}
-
-function createToken() {
-  const expiresAt = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-  const payload = String(expiresAt);
-  return `${payload}.${sign(payload)}`;
-}
-
-function verifyToken(token: string | undefined) {
-  if (!token) return false;
-  const [expiresAt, signature] = token.split(".");
-  if (!expiresAt || !signature) return false;
-  if (Number(expiresAt) < Date.now()) return false;
-
-  const expected = sign(expiresAt);
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+// Chave que assina a sessão. Com ADMIN_SESSION_SECRET definida, ela não depende da senha:
+// um cookie vazado não permite testar senhas offline.
+function sessionSecret() {
+  return process.env.ADMIN_SESSION_SECRET || adminPassword();
 }
 
 export async function isAdminSession() {
   try {
     const store = await cookies();
-    return verifyToken(store.get(COOKIE_NAME)?.value);
+    return verifySessionToken(store.get(COOKIE_NAME)?.value, sessionSecret());
   } catch {
     return false;
   }
 }
 
 export async function loginAdmin(password: string) {
-  const expected = getAdminPassword();
-  const a = Buffer.from(password);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
+  if (!passwordMatches(password, adminPassword())) {
+    // Atraso simples para dificultar tentativas repetidas de adivinhar a senha.
+    await new Promise((resolve) => setTimeout(resolve, FAILED_LOGIN_DELAY_MS));
+    return false;
+  }
 
   const store = await cookies();
-  store.set(COOKIE_NAME, createToken(), {
+  store.set(COOKIE_NAME, createSessionToken(sessionSecret()), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_DAYS * 24 * 60 * 60,
+    maxAge: SESSION_MAX_AGE_SECONDS,
   });
   return true;
 }
@@ -65,6 +51,6 @@ export async function logoutAdmin() {
 
 export async function requireAdmin() {
   if (!(await isAdminSession())) {
-    throw new Error("Acesso administrativo não autorizado.");
+    throw new UserError("Acesso não autorizado. Entre novamente na área administrativa.");
   }
 }

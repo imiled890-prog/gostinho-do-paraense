@@ -6,10 +6,10 @@ import { CartProvider } from "@/components/CartContext";
 import AdminGate from "@/components/AdminGate";
 import { isAdminSession } from "@/lib/auth";
 import { CATEGORIES } from "@/data/categories";
+import { whatsappUrl } from "@/lib/site";
 import type { Product } from "@/lib/types";
 
-const WHATSAPP_NUMBER = "5541998832374";
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Olá! Gostaria de fazer um pedido.")}`;
+const WHATSAPP_URL = whatsappUrl("Olá! Gostaria de fazer um pedido.");
 
 export default async function Home() {
   const content = await getSiteData();

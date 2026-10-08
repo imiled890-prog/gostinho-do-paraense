@@ -1,12 +1,5 @@
 @import "tailwindcss";
 
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee { display: inline-flex; animation: marquee 25s linear infinite; }
-
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

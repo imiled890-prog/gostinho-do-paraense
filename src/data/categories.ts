@@ -1,7 +1,7 @@
 import type { ProductCategory } from "@/lib/types";
 
 export const CATEGORIES: { id: ProductCategory; name: string; emoji: string }[] = [
-  { id: "hamburguer", name: "Hamburgueres", emoji: "🍔" },
+  { id: "hamburguer", name: "Hambúrgueres", emoji: "🍔" },
   { id: "comida-tipica", name: "Comidas Típicas", emoji: "🍲" },
   { id: "porcao", name: "Porções", emoji: "🍟" },
   { id: "acai", name: "Açaí", emoji: "🫐" },

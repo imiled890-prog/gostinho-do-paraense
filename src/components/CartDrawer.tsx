@@ -1,26 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "./CartContext";
 import { formatPriceBRL } from "@/lib/pricing";
+import { whatsappUrl } from "@/lib/site";
 import { ShoppingCart, X, Plus, Minus, Trash2, Phone, ChevronUp } from "lucide-react";
-
-const WHATSAPP_NUMBER = "5541998832374";
 
 export default function CartDrawer() {
   const [open, setOpen] = useState(false);
   const { items, totalItems, totalPrice, incrementItem, decrementItem, removeItem, clearCart, buildWhatsAppMessage } = useCart();
 
+  // Fecha o pedido com a tecla Esc, como um diálogo comum.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   const handleSendOrder = () => {
-    const message = buildWhatsAppMessage();
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    window.open(whatsappUrl(buildWhatsAppMessage()), "_blank", "noopener,noreferrer");
   };
 
   if (totalItems === 0) return null;
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-yellow-500 text-red-900 px-5 py-4 rounded-full shadow-2xl font-black border-2 border-yellow-300">
+      <button
+        onClick={() => setOpen(true)}
+        aria-label={`Ver pedido, ${totalItems} ${totalItems === 1 ? "item" : "itens"}`}
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-yellow-500 text-red-900 px-5 py-4 rounded-full shadow-2xl font-black border-2 border-yellow-300"
+      >
         <ShoppingCart size={24} />
         <span className="hidden sm:inline">Ver Pedido</span>
         <span className="bg-red-600 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">{totalItems}</span>
@@ -30,7 +42,7 @@ export default function CartDrawer() {
       {open && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center">
           <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-lg bg-[#fdf6ec] rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col overflow-hidden border-t-4 border-yellow-500 animate-slideUp">
+          <div role="dialog" aria-modal="true" aria-label="Seu pedido" className="relative w-full max-w-lg bg-[#fdf6ec] rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col overflow-hidden border-t-4 border-yellow-500 animate-slideUp">
             <div className="wood-bg px-6 py-5 flex items-center justify-between">
               <div className="flex items-center gap-3"><ShoppingCart className="text-yellow-400" /><h3 className="text-2xl font-black text-yellow-400">Seu Pedido</h3><span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-black">{totalItems}</span></div>
               <button onClick={() => setOpen(false)} className="text-yellow-200 p-1" aria-label="Fechar"><X /></button>

@@ -27,7 +27,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
   product("hamburguer-x-tudo", "X-Tudo", 2900, "hamburguer", "Pão brioche, carne artesanal 120g, presunto, ovo, bacon, calabresa, queijo, alface, tomate, pepino e batata palha."),
   product("comida-tacaca", "Tacacá", 2500, "comida-tipica", "Prato tradicional paraense com tucupi, jambu, camarão e goma de mandioca."),
   product("comida-vatapa", "Vatapá", 3000, "comida-tipica", "Creme delicioso feito com pão, camarão, leite de coco e azeite de dendê."),
-  product("comida-man_icoba", "Maniçoba", 2500, "comida-tipica", "A feijoada paraense feita com a folha da mandioca (maniva) cozida por 7 dias."),
+  product("comida-manicoba", "Maniçoba", 2500, "comida-tipica", "A feijoada paraense feita com a folha da mandioca (maniva) cozida por 7 dias."),
   product("comida-arroz-paraense", "Arroz Paraense", 3000, "comida-tipica", "Arroz com tucupi, jambu e camarão seco."),
   product("comida-creme-cupuacu", "Creme de Cupuaçu", 1200, "comida-tipica", "Sobremesa cremosa da fruta típica da Amazônia."),
   product("comida-creme-bacuri", "Creme de Bacuri", 1300, "comida-tipica", "Sobremesa cremosa da fruta exótica Bacuri."),

@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-test-module-mocks --import tsx --test \"tests/**/*.test.ts\""
   },
   "dependencies": {
     "lucide-react": "^1.52.0",
@@ -21,8 +22,9 @@
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.4",
     "eslint-config-next": "16.3.8",
-    "postcss": "8.5.8",
+    "postcss": "8.5.29",
     "tailwindcss": "4.1.17",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3"
   }
 }

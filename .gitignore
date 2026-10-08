@@ -7,3 +7,9 @@ out/
 npm-debug.log*
 *.tsbuildinfo
 .DS_Store
+
+# Dados gerados pelo desenvolvimento local (sem GITHUB_* configurado).
+# Em produção, o conteúdo fica no repositório GitHub, gravado pela API.
+content/site.json
+content/images/*
+!content/images/.gitkeep

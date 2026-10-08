@@ -2,52 +2,89 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { CATEGORIES } from "@/data/categories";
 import { loginAdmin, logoutAdmin, requireAdmin } from "@/lib/auth";
-import { DEFAULT_CONTENT } from "@/data/default-content";
-import { deleteMedia, mediaUrl, readSiteContent, uploadMedia, writeSiteContent } from "@/lib/github";
+import { toActionError, UserError, type ActionResult } from "@/lib/errors";
+import { deleteMedia, readSiteContent, updateSiteContent, uploadMedia } from "@/lib/github";
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  detectImageKind,
+  type ImageKind,
+  MAX_IMAGE_BYTES,
+  MAX_IMAGE_LABEL,
+  mediaUrl,
+} from "@/lib/media";
 import { parsePriceToCents } from "@/lib/pricing";
-import type { Product, ProductCategory, SiteContent } from "@/lib/types";
+import {
+  withAnnouncement,
+  withoutAnnouncement,
+  withoutProduct,
+  withProduct,
+  withProductAvailability,
+} from "@/lib/site-content";
+import type { Product, ProductCategory } from "@/lib/types";
 
-const MAX_IMAGE_BYTES = 900 * 1024;
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const ALLOWED_CATEGORIES = new Set<ProductCategory>([
-  "hamburguer",
-  "comida-tipica",
-  "porcao",
-  "acai",
-  "bebida",
-  "novo",
-]);
+const PRODUCT_ID_PATTERN = /^[A-Za-z0-9_-]{1,80}$/;
+const MAX_NAME_LENGTH = 120;
+const MAX_DESCRIPTION_LENGTH = 500;
+const MAX_PRICE_TEXT_LENGTH = 30;
+const MAX_ANNOUNCEMENT_LENGTH = 300;
+const CATEGORY_IDS = new Set<string>(CATEGORIES.map((category) => category.id));
+const NOT_FOUND_MESSAGE = "Produto não encontrado. Atualize a página e tente novamente.";
 
-function cleanText(value: FormDataEntryValue | null, maxLength: number) {
-  return String(value ?? "").trim().slice(0, maxLength);
+function readText(formData: FormData, key: string, maxLength: number) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
-function getFileExtension(file: File) {
-  const map: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-  };
-  return map[file.type] || "bin";
-}
+function parseProductForm(formData: FormData) {
+  const rawId = readText(formData, "id", 81);
+  if (rawId && !PRODUCT_ID_PATTERN.test(rawId)) throw new UserError("Identificador de produto inválido.");
 
-function ensureContentShape(content: SiteContent): SiteContent {
-  if (!content || content.version !== 1 || !Array.isArray(content.products) || !Array.isArray(content.announcements)) {
-    return DEFAULT_CONTENT;
+  const name = readText(formData, "name", MAX_NAME_LENGTH);
+  const priceText = readText(formData, "price", MAX_PRICE_TEXT_LENGTH);
+  const category = readText(formData, "category", 40);
+  if (!name || !priceText || !CATEGORY_IDS.has(category)) {
+    throw new UserError("Preencha nome, preço e categoria.");
   }
-  return content;
+
+  return {
+    id: rawId || randomUUID(),
+    isEdit: Boolean(rawId),
+    name,
+    description: readText(formData, "description", MAX_DESCRIPTION_LENGTH),
+    priceCents: parsePriceToCents(priceText),
+    category: category as ProductCategory,
+    removeImage: formData.get("removeImage") === "true",
+  };
 }
 
-export async function loginAdminAction(password: string) {
+async function readNewImage(formData: FormData): Promise<{ bytes: Buffer; kind: ImageKind } | null> {
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return null;
+  if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) throw new UserError("Use JPG, PNG ou WEBP.");
+  if (file.size > MAX_IMAGE_BYTES) throw new UserError(`A imagem deve ter no máximo ${MAX_IMAGE_LABEL}.`);
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const kind = detectImageKind(bytes);
+  if (!kind) throw new UserError("O arquivo enviado não é uma imagem JPG, PNG ou WEBP válida.");
+  return { bytes, kind };
+}
+
+function logCleanupError(error: unknown) {
+  console.error("Não foi possível remover um arquivo de imagem:", error);
+}
+
+export async function loginAdminAction(password: string): Promise<{ success: boolean; error?: string }> {
   if (typeof password !== "string" || password.length < 1 || password.length > 200) {
-    return { success: false };
+    return { success: false, error: "Código inválido." };
   }
   try {
-    return { success: await loginAdmin(password) };
+    const success = await loginAdmin(password);
+    return success ? { success: true } : { success: false, error: "Código inválido." };
   } catch (error) {
-    console.error("Admin login error:", error);
-    return { success: false };
+    console.error("Erro no login administrativo:", error);
+    return { success: false, error: "Login indisponível. Verifique a configuração do servidor." };
   }
 }
 
@@ -57,8 +94,7 @@ export async function logoutAdminAction() {
 }
 
 export async function getSiteData() {
-  const raw = await readSiteContent();
-  const content = ensureContentShape(raw);
+  const content = await readSiteContent();
 
   return {
     ...content,
@@ -69,143 +105,145 @@ export async function getSiteData() {
   };
 }
 
-export async function saveProduct(formData: FormData) {
-  await requireAdmin();
+export async function saveProduct(formData: FormData): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const input = parseProductForm(formData);
+    const image = await readNewImage(formData);
 
-  const rawId = cleanText(formData.get("id"), 80);
-  if (rawId && !/^[A-Za-z0-9_-]+$/.test(rawId)) {
-    throw new Error("Identificador de produto inválido.");
-  }
-  const id = rawId || randomUUID();
-  const name = cleanText(formData.get("name"), 120);
-  const description = cleanText(formData.get("description"), 500);
-  const priceText = cleanText(formData.get("price"), 30);
-  const category = cleanText(formData.get("category"), 40) as ProductCategory;
-  const removeImage = String(formData.get("removeImage") ?? "false") === "true";
-  const fileValue = formData.get("image");
-
-  if (!name || !priceText || !ALLOWED_CATEGORIES.has(category)) {
-    throw new Error("Preencha nome, preço e categoria.");
-  }
-
-  const priceCents = parsePriceToCents(priceText);
-  const content = ensureContentShape(await readSiteContent());
-  const existing = content.products.find((item) => item.id === id);
-
-  let imagePath = existing?.imagePath;
-  if (removeImage && imagePath) {
-    await deleteMedia(imagePath, `remove product image: ${name}`);
-    imagePath = undefined;
-  }
-
-  if (fileValue instanceof File && fileValue.size > 0) {
-    if (!ALLOWED_IMAGE_TYPES.has(fileValue.type)) {
-      throw new Error("Use JPG, PNG ou WEBP.");
-    }
-    if (fileValue.size > MAX_IMAGE_BYTES) {
-      throw new Error("A imagem deve ter no máximo 900 KB.");
+    // Cada foto nova ganha um nome único. Assim, o cache de longo prazo do navegador
+    // nunca exibe a foto antiga para quem já visitou o site.
+    const newImagePath = image ? `content/images/${input.id}-${randomUUID().slice(0, 8)}.${image.kind}` : undefined;
+    if (image && newImagePath) {
+      await uploadMedia(newImagePath, image.bytes, `update product image: ${input.name}`);
     }
 
-    const extension = getFileExtension(fileValue);
-    const previousImagePath = imagePath;
-    imagePath = `content/images/${id}.${extension}`;
-    const buffer = Buffer.from(await fileValue.arrayBuffer());
-    await uploadMedia(imagePath, buffer, `update product image: ${name}`);
-    if (previousImagePath && previousImagePath !== imagePath) {
-      await deleteMedia(previousImagePath, `remove old product image: ${name}`);
+    const outcome: { replacedImagePath?: string } = {};
+    try {
+      await updateSiteContent((content) => {
+        const existing = content.products.find((item) => item.id === input.id);
+        if (input.isEdit && !existing) {
+          throw new UserError("Este produto não existe mais. Atualize a página e tente novamente.");
+        }
+
+        const currentImage = existing?.imagePath;
+        const imagePath = newImagePath ?? (input.removeImage ? undefined : currentImage);
+        outcome.replacedImagePath = currentImage && currentImage !== imagePath ? currentImage : undefined;
+
+        const product: Product = {
+          id: input.id,
+          name: input.name,
+          description: input.description,
+          priceCents: input.priceCents,
+          category: input.category,
+          ...(imagePath ? { imagePath } : {}),
+          isAvailable: existing?.isAvailable ?? true,
+          createdAt: existing?.createdAt || new Date().toISOString(),
+        };
+        return {
+          content: withProduct(content, product),
+          message: `${existing ? "update" : "add"} product: ${input.name}`,
+        };
+      });
+    } catch (error) {
+      // O produto não foi salvo: descarta a imagem recém-enviada para não deixar arquivo órfão.
+      if (newImagePath) await deleteMedia(newImagePath, "rollback product image").catch(logCleanupError);
+      throw error;
     }
+
+    // A foto antiga só é removida depois que o produto já aponta para a nova (ou para nenhuma).
+    if (outcome.replacedImagePath) {
+      await deleteMedia(outcome.replacedImagePath, `remove old product image: ${input.name}`).catch(logCleanupError);
+    }
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return toActionError(error);
   }
-
-  const product: Product = {
-    id,
-    name,
-    description,
-    priceCents,
-    category,
-    imagePath,
-    isAvailable: existing?.isAvailable ?? true,
-    createdAt: existing?.createdAt ?? new Date().toISOString(),
-  };
-
-  const products = existing
-    ? content.products.map((item) => (item.id === id ? product : item))
-    : [...content.products, product];
-
-  await writeSiteContent(
-    { ...content, version: 1, products },
-    `${existing ? "update" : "add"} product: ${name}`,
-  );
-
-  revalidatePath("/");
-  return { success: true };
 }
 
-export async function deleteProduct(id: string) {
-  await requireAdmin();
-  const content = ensureContentShape(await readSiteContent());
-  const existing = content.products.find((item) => item.id === id);
-  if (!existing) return { success: false };
+export async function deleteProduct(id: string): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const outcome: { removed?: Product } = {};
+    await updateSiteContent((content) => {
+      const product = content.products.find((item) => item.id === id);
+      outcome.removed = product;
+      if (!product) return null;
+      return { content: withoutProduct(content, id), message: `delete product: ${product.name}` };
+    });
 
-  if (existing.imagePath) {
-    await deleteMedia(existing.imagePath, `delete product image: ${existing.name}`);
+    if (!outcome.removed) throw new UserError(NOT_FOUND_MESSAGE);
+    if (outcome.removed.imagePath) {
+      await deleteMedia(outcome.removed.imagePath, `delete product image: ${outcome.removed.name}`).catch(
+        logCleanupError,
+      );
+    }
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return toActionError(error);
   }
-
-  await writeSiteContent(
-    { ...content, products: content.products.filter((item) => item.id !== id) },
-    `delete product: ${existing.name}`,
-  );
-  revalidatePath("/");
-  return { success: true };
 }
 
-export async function setProductAvailability(id: string, isAvailable: boolean) {
-  await requireAdmin();
-  const content = ensureContentShape(await readSiteContent());
-  const product = content.products.find((item) => item.id === id);
-  if (!product) return { success: false };
+export async function setProductAvailability(id: string, isAvailable: boolean): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const outcome: { found: boolean } = { found: false };
+    await updateSiteContent((content) => {
+      const product = content.products.find((item) => item.id === id);
+      outcome.found = Boolean(product);
+      if (!product) return null;
+      return {
+        content: withProductAvailability(content, id, Boolean(isAvailable)),
+        message: `${isAvailable ? "enable" : "disable"} product: ${product.name}`,
+      };
+    });
 
-  const products = content.products.map((item) =>
-    item.id === id ? { ...item, isAvailable: Boolean(isAvailable) } : item,
-  );
-
-  await writeSiteContent(
-    { ...content, products },
-    `${isAvailable ? "enable" : "disable"} product: ${product.name}`,
-  );
-  revalidatePath("/");
-  return { success: true };
+    if (!outcome.found) throw new UserError(NOT_FOUND_MESSAGE);
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return toActionError(error);
+  }
 }
 
-export async function addAnnouncement(contentText: string) {
-  await requireAdmin();
-  const content = ensureContentShape(await readSiteContent());
-  const text = String(contentText ?? "").trim().slice(0, 300);
-  if (!text) throw new Error("O aviso não pode ficar vazio.");
+export async function addAnnouncement(text: string): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const message = typeof text === "string" ? text.trim().slice(0, MAX_ANNOUNCEMENT_LENGTH) : "";
+    if (!message) throw new UserError("O aviso não pode ficar vazio.");
 
-  await writeSiteContent(
-    {
-      ...content,
-      announcements: [
-        ...content.announcements,
-        {
-          id: randomUUID(),
-          content: text,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    },
-    "add announcement",
-  );
-  revalidatePath("/");
+    await updateSiteContent((current) => ({
+      content: withAnnouncement(current, {
+        id: randomUUID(),
+        content: message,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      }),
+      message: "add announcement",
+    }));
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return toActionError(error);
+  }
 }
 
-export async function deleteAnnouncement(id: string) {
-  await requireAdmin();
-  const content = ensureContentShape(await readSiteContent());
-  await writeSiteContent(
-    { ...content, announcements: content.announcements.filter((item) => item.id !== id) },
-    "delete announcement",
-  );
-  revalidatePath("/");
+export async function deleteAnnouncement(id: string): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    await updateSiteContent((current) => {
+      if (!current.announcements.some((item) => item.id === id)) return null;
+      return { content: withoutAnnouncement(current, id), message: "delete announcement" };
+    });
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return toActionError(error);
+  }
 }
