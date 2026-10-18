@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><linearGradient id="bg" x2="0" y2="1"><stop stop-color="#fff7d6"/><stop offset="1" stop-color="#f2d18a"/></linearGradient></defs>
+<rect width="512" height="512" rx="72" fill="url(#bg)"/>
+<circle cx="256" cy="204" r="135" fill="#173f2b"/>
+<path d="M130 170 Q160 38 236 108 Q280 17 322 102 Q383 60 393 166 Q330 125 256 137 Q184 126 130 170Z" fill="#3b7a43"/>
+<path d="M174 146 Q140 87 192 65 Q213 114 174 146M234 116 Q215 44 265 35 Q284 87 234 116M300 119 Q309 54 360 71 Q353 120 300 119" fill="#7da84d" stroke="#f3d27a" stroke-width="5"/>
+<path d="M153 214 Q157 143 256 141 Q355 143 359 214 L340 287 Q316 337 256 343 Q196 337 172 287Z" fill="#b66b43"/>
+<path d="M175 213 Q195 171 234 198 Q211 218 175 213M278 198 Q318 171 337 213 Q302 218 278 198" fill="#241b16"/>
+<ellipse cx="211" cy="230" rx="15" ry="20" fill="#fff"/><ellipse cx="300" cy="230" rx="15" ry="20" fill="#fff"/>
+<circle cx="214" cy="232" r="8" fill="#241b16"/><circle cx="297" cy="232" r="8" fill="#241b16"/>
+<path d="M241 267 Q256 279 272 266" fill="none" stroke="#7a2f24" stroke-width="8" stroke-linecap="round"/>
+<path d="M162 198 Q202 158 235 185M277 185 Q312 158 350 198" fill="none" stroke="#241b16" stroke-width="12" stroke-linecap="round"/>
+<path d="M105 350 Q256 300 407 350 L442 410 Q256 463 70 410Z" fill="#a91f24"/>
+<path d="M103 352 Q256 321 409 352 L421 377 Q256 410 91 377Z" fill="#f5c743"/>
+<path d="M256 347 l12 26 -12 26 -12 -26Z" fill="#fff"/>
+<text x="256" y="443" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="33" fill="#7e171b">GOSTINHO</text>
+<text x="256" y="476" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="22" letter-spacing="3" fill="#7e171b">DO PARÁ</text>
+</svg>
