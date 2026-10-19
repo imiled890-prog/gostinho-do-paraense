@@ -5,6 +5,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Gostinho do Paraense | Comidas Típicas do Pará em Curitiba",
   description: "Culinária, tradição e o orgulho de ser paraense. Tacacá, Vatapá, Maniçoba, Açaí e muito mais! Peça pelo WhatsApp.",
+  other: {
+    "google-site-verification": "21PXf5NSMUS0JgzLhZV4UXeQT3vJyPEShFDGKlhifis",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
